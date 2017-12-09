@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Barchart</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+
+	<style type="text/css">
+		.box{
+			border: 1px solid white;
+			background-color: red;
+			height: 20px;
+			white-space: nowrap;
+			text-align: right;
+		}
+
+		.button{
+			margin: 2px 2px 2px 2px;
+		}
+	</style>
+</head>
+<body>
+	
+	<div class="buttons"></div>
+	<div class="barchart"></div>
+	
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+	<script type="text/javascript" src="udf/drawBarchart.js"></script>
+
+	<script type="text/javascript">
+
+		d3.csv("data/odi-batting.csv", function(data){
+			//{Country: "Afghanistan", Player: "Mohammad Shahzad", Runs
+			uniq_countries = _.unique(_.pluck(data, "Country"))
+		
+
+			for(i=0; i<uniq_countries.length; i++){
+				$(".buttons").append('<button class="button btn btn-primary">'+uniq_countries[i]+'</btn>')
+			}
+			
+			country_player_dict = {}
+
+			for(i=0; i<uniq_countries.length; i++){
+				curr_country = uniq_countries[i]
+				filter_data = _.filter(data, {'Country':curr_country})
+				curr_country_player = _.unique(_.pluck(filter_data, 'Player')).length
+				country_player_dict[curr_country] = curr_country_player
+			}
+
+			var sort_country_player = Object.keys(country_player_dict).sort(function(a,b){
+				return country_player_dict[b] - country_player_dict[a]
+			})
+
+			max_width = 400
+			max_num_players = _.max(Object.values(country_player_dict))
+
+			for(i=0; i<uniq_countries.length; i++){
+				
+				curr_country = sort_country_player[i]
+				curr_width = country_player_dict[curr_country]/max_num_players * max_width
+
+				$('.barchart').append('<div class="box" style="width:'+curr_width+'px">'+curr_country+'</div>')
+			}
+
+			$('body').on('click', '.box', function(){
+				curr_country = $(this).text()
+				filter_data = _.filter(data, {'Country':curr_country})
+
+				var player_runs = d3.nest()
+									.key(function(d) {return d.Player})
+									.rollup(function(d) {
+										return d3.sum(d, function(g) {return g.Runs})
+									}).entries(filter_data)
+
+				player_list = _.pluck(player_runs, 'key')
+				runs_list = _.pluck(player_runs, 'value')
+				
+				drawBarchart('.barchart', 400, player_list, runs_list)
+			})
+
+			$('body').on('click', '.button', function(){
+				curr_country = $(this).text()
+				filter_data = _.filter(data, {'Country':curr_country})
+
+
+				var player_runs = d3.nest()
+									.key(function(d) {return d.Player})
+									.rollup(function(d) {
+										return d3.sum(d, function(g) {return g.Runs})
+									}).entries(filter_data)
+
+				player_list = _.pluck(player_runs, 'key')
+				runs_list = _.pluck(player_runs, 'value')
+
+				drawBarchart('.barchart', 400, player_list, runs_list)
+
+			})
+		})
+	</script>
+
+</body>
+</html>

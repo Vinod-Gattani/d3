@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>D3 Barchart</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+
+	<style type="text/css">
+		.bar-chart{
+			border: 1px solid black;
+		}
+	</style>
+</head>
+<body>
+	
+	<svg width="500" height="400" class="bar-chart"></svg>
+
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+
+	<script type="text/javascript">
+
+		var data = [
+		{'city':'Pune', 'pop':10000},
+		{'city':'Kol', 'pop':12000},
+		{'city':'Del', 'pop':15000},
+		{'city':'Chen', 'pop':8000},
+		]
+
+		xaxis_col = 'city'
+		yaxis_col = 'pop'
+
+		xaxis_values = _.pluck(data, 'city')
+		yaxis_values = _.pluck(data, 'pop')
+
+		max_yvalue = _.max(yaxis_values)
+
+		margin = {'top':50, 'right':50, 'bottom':50, 'left':50}
+
+		active_width = d3.select('.bar-chart').attr('width') - margin['left'] - margin['right']
+		active_height = d3.select('.bar-chart').attr('height') - margin['top'] - margin['bottom']
+		
+		d3.select('.bar-chart')			
+			.append('g')
+			.attr('transform', 'translate(50,50)')
+			.attr('class', 'g-main')
+			.attr('stroke', 'steelblue')
+
+		yaxis_scale = d3.scaleLinear()
+						.range([0, active_height])
+						.domain([max_yvalue, 0])
+
+		d3.select('.g-main')
+			.append('g')
+			.call(d3.axisLeft(yaxis_scale))
+		
+		xaxis_scale = d3.scaleBand()
+						.range([0, active_width])
+						.domain(xaxis_values)
+						.padding(0.3)
+
+		d3.select('.g-main')
+			.append('g')
+			.call(d3.axisBottom(xaxis_scale))
+			.attr('transform', 'translate(0,'+active_height+')')
+
+		d3.select('.g-main')
+			.append('g')
+			.selectAll('.bar')
+			.data(data)
+			.enter()
+			.append('rect')
+			.attr('x', function(d) {return xaxis_scale(d[xaxis_col])})
+			.attr('y', function(d) {return yaxis_scale(d[yaxis_col])})
+			.attr('height', function(d) {return active_height - yaxis_scale(d[yaxis_col])})
+			.attr('width', xaxis_scale.bandwidth())
+			.attr('fill', 'steelblue')
+		
+		d3.select('.g-main')
+			.selectAll('.bar1')
+			.data(data)
+			.enter()
+			.append('text')
+			.attr('text-anchor', "middle")
+			.attr('x', function(d) {return xaxis_scale(d[xaxis_col]) + xaxis_scale.bandwidth()/2})
+			.attr('y', function(d) {return yaxis_scale(d[yaxis_col]) - 5})
+			.text(function(d) {return d[yaxis_col]})
+		/*
+		d3.select('.g-main')
+			.selectAll('.bar')
+			.data()
+		*/
+	</script>
+
+
+</body>
+</html>
