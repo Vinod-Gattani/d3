@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Interactive Barchart</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+	<style type="text/css">
+		.btn-primary {
+			margin: 10px 1px 1px 3px;
+		}
+	</style>
+</head>
+<body>
+	
+	<div class="countries-buttons"></div>
+	<svg width="1000" height="500" class="barchart"/>
+
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+	<script type="text/javascript" src="udf/d3_rectangle.js"></script>
+	<script type="text/javascript">
+		
+		function row_mappings(row){
+			d3_parseTime = d3.timeParse('%m-%d-%Y')
+			d3_parseYear = d3.timeFormat('%Y')
+
+			row['Runs'] = parseFloat(row['Runs'])
+			row['MatchDate'] = d3_parseTime(row['MatchDate'])
+			row['Year'] = parseInt(d3_parseYear(row['MatchDate']))
+
+			row['Century'] = row['Runs'] > 99 ? 1: 0
+
+			return row
+		}
+
+		function get_centuries(data) {
+			var uniq_years = _.unique(_.pluck(data, 'Year')).sort()
+			data_centuries = []
+
+			$.map(uniq_years, function(year){
+				data_year = _.filter(data, {'Year': year})
+				year_centuries = d3.sum(_.pluck(data_year, 'Century'))
+				data_centuries.push({'Century':year_centuries, 'Year':year})
+			})
+
+			return data_centuries
+		}
+		d3.csv('data/odi-batting.csv', row_mappings, function(data){
+
+			var uniq_countries = _.unique(_.pluck(data, 'Country'))
+			$.map(uniq_countries, function(country){
+				$('.countries-buttons').append('<button class="btn btn-primary btn-countries">'+country+'</button')
+			})
+			
+			var data_centuries = get_centuries(data)
+			
+			xaxis_col = 'Year'
+			yaxis_col = 'Century'
+			svg_element = '.barchart'
+
+			draw_d3_rectangle(data_centuries, xaxis_col, yaxis_col, svg_element)
+
+			$('body').on('click', '.btn-countries', function(){
+				country_selected = $(this).text()
+				filter_data = _.filter(data, {'Country':country_selected})
+				var data_centuries = get_centuries(filter_data)
+
+				draw_d3_rectangle(data_centuries, xaxis_col, yaxis_col, svg_element)
+
+			})
+			
+			$('body').on('click', '.hjk', function(){
+				
+				year_selected = parseInt($(this).attr('x1'))
+				
+				filter_data = _.filter(data, {'Year': year_selected})
+				
+				uniq_countries = _.unique(_.pluck(filter_data, 'Country'))
+				country_century = []
+
+				$.map(uniq_countries, function(country){
+					country_data = _.filter(filter_data, {'Country': country})
+					centuries = d3.sum(_.pluck(country_data, 'Century'))
+					country_century.push({'Country':country, 'Century':centuries})
+				})
+
+				xaxis_col = 'Country'
+				yaxis_col = 'Century'
+				draw_d3_rectangle(country_century, xaxis_col, yaxis_col, svg_element)
+
+			})
+			
+		})
+
+
+	</script>
+
+</body>
+</html>
