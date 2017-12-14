@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Stack Bar Chart</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+	<style type="text/css">
+		.stack-chart{
+			border: 1px solid black;
+		}
+	</style>
+</head>
+<body>
+	
+	<svg width=800 height=500 class="stack-chart"></svg>
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+
+	<script type="text/javascript">
+		
+		function row_mappings(row){
+			keys = Object.keys(row).slice(1)
+			total = 0
+
+			for (i=0; i<keys.length; i++){
+				total += +row[keys[i]]
+			}
+			
+			row['total'] = total
+			return row
+		}
+
+		d3.csv('data/stackbar_data.csv', row_mappings, function(data){
+
+			keys = data.columns.slice(1)
+			data_stack = d3.stack().keys(keys)(data)
+
+			margin = {'top':50, 'right':150, 'bottom':50, 'left':50}
+			svg_ele = '.stack-chart'
+
+			active_width = d3.select(svg_ele).attr('width') - margin.right - margin.left
+			active_height = d3.select(svg_ele).attr('height') - margin.top - margin.bottom
+
+			xaxis_col = 'State'
+
+			xaxis_scale = d3.scaleBand()
+							.domain(_.pluck(data, xaxis_col))
+							.range([0, active_width])
+							.padding(0.2)
+
+			yaxis_scale = d3.scaleLinear()
+							.domain([d3.max(_.pluck(data, 'total')), 0])
+							.range([0, active_height])
+
+			colour_scale  = d3.scaleOrdinal()
+							.range(d3.schemeCategory20)
+							.domain(keys)
+
+			main_g = d3.select(svg_ele)
+						.append('g')
+						.attr('class', 'g-main')
+						.attr('transform', 'translate('+margin.left+','+margin.top+')')
+
+			main_g.append('g')
+				.call(d3.axisBottom(xaxis_scale))
+				.attr('transform', 'translate(0,'+active_height+')')
+
+			main_g.append('g')
+				.call(d3.axisLeft(yaxis_scale))
+
+			var stack_1 = main_g.append('g')
+				.selectAll('stack')
+				.data(data_stack)
+				.enter()
+				.append('g')
+				.attr('fill', function(d) {return colour_scale(d.key)})
+				.attr('data-product', function(d) {return d.key})
+				
+			stack_1.selectAll('rect')
+					.data(function(d) {return d})
+					.enter()
+					.append('rect')
+					.attr('x', function(d) {return xaxis_scale(d.data[xaxis_col])})
+					.attr('y', function(d) {return yaxis_scale(d[1])})
+					.attr('width', xaxis_scale.bandwidth())
+					.attr('height', function(d) {return yaxis_scale(d[0]) - yaxis_scale(d[1])})
+					.attr('stroke', 'white')
+
+			stack_1.selectAll('text')
+					.data(function(d) {return d})
+					.enter()
+					.append('text')
+					.attr('x', function(d) {return xaxis_scale(d.data.State) + xaxis_scale.bandwidth()/2})
+					.attr('y', function(d) {return yaxis_scale(d[1]) + (yaxis_scale(d[0]) - yaxis_scale(d[1]))/2})
+					.text(function(d) {return d[1] - d[0]})
+					.attr('fill', 'red')
+					.attr('text-anchor', 'middle')
+					.attr('font-size', 10)
+					.attr('alignment-baseline', 'central')					
+
+			main_g.append('g')
+					.attr('class', 'legend')
+					.selectAll('legend')
+					.data(keys)
+					.enter()
+					.append('text')
+					.attr('x', active_width)
+					.attr('y', function(d,i) {return i*20})
+					.attr('fill', function(d) {return colour_scale(d)})
+					.text(function(d) {return d})
+					.on('mouseover', function(d){
+						$('[data-product]').hide()
+						$('[data-product="'+d+'"]').show()	
+					})
+					.on('mouseout', function(){
+						$('[data-product]').show()
+					})
+		
+		})
+	</script>
+</body>
+</html>
