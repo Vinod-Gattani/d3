@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Tree Map</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+	<style type="text/css">
+		.tree-map{
+			border: 1px solid green;
+		}
+	</style>
+</head>
+<body>
+
+	<svg width=800 height=500 class="tree-map"></svg>
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="udf/convert2Tree.js"></script>
+	<script type="text/javascript">
+
+		margin = {'top':50, 'right':150, 'bottom':50, 'left':50}
+		svg_ele = '.tree-map'
+
+		active_width = d3.select(svg_ele).attr('width') - margin.right - margin.left
+		active_height = d3.select(svg_ele).attr('height') - margin.top - margin.bottom
+
+		function row_mappings(row){
+			row['value'] = +row['value']
+			row['Revenue'] +row['Revenue']
+			return row
+		}
+
+		d3.csv('data/treeMap_data.csv', row_mappings, function(data){
+
+			tree_data = convert2Tree(data, ['State'])
+
+			d3.select(svg_ele)
+				.append('g')
+				.attr('class', 'g-main')
+				.attr('transform', 'translate(50,50)')
+
+			root= d3.hierarchy(tree_data)
+
+			treeLayout = d3.tree()
+							.size([active_width, active_height])
+
+			data_nodes = treeLayout(root)
+
+			d3.select('.g-main')
+				.append('g')
+				.selectAll('circles')
+				.data(root.descendants())
+				.enter()
+				.append('circle')
+				.attr('cx', function(d) {return d.x})
+				.attr('cy', function(d) {return d.y})
+				.attr('r', 4)
+				.attr('fill', 'red')
+
+			d3.select('.g-main')
+				.append('g')
+				.selectAll('text')
+				.data(root.descendants().slice(0))
+				.enter()
+				.append('text')
+				.attr('x', function(d) {return d.x})
+				.attr('y', function(d) {return d.y})
+				.text(function(d){console.log(d); 
+					if (d.depth == 1) {
+						return d.data.name}
+					else if (d.depth == 2) {
+						return d.data.City
+					} else {return 'root'}
+				})
+				.attr('fill', 'green')
+				.attr('font-size',10)
+				.attr('transform', function(d){
+
+					if (d.depth == 2){
+						return 'rotate(-45 '+d.x+','+d.y+')'
+					}
+				})
+				.attr('dominant-baseline', 'hanging')
+
+			d3.select('.g-main')
+				.append('g')
+				.selectAll('lines')
+				.data(root.descendants().slice(1))
+				.enter()
+				.append('line')
+				.attr('x1', function(d){return d.x})
+				.attr('y1', function(d){return d.y})
+				.attr('x2', function(d) {return d.parent.x})
+				.attr('y2', function(d) {return d.parent.y})
+				.attr('stroke-width', 2)
+				.attr('stroke', 'yellow')
+
+
+		})
+
+
+
+
+	</script>
+	
+</body>
+</html>

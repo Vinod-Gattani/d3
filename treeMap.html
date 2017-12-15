@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Tree Map</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+	<style type="text/css">
+		.tree-map{
+			border: 1px solid green;
+		}
+	</style>
+
+</head>
+<body>
+	<svg width=700 height=500 class="tree-map"></svg>
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="udf/convert2Tree.js"></script>
+	<script type="text/javascript">
+
+		margin = {'top':50, 'right':50, 'bottom':50, 'left':50}
+		svg_ele = '.tree-map'
+
+		active_width = d3.select(svg_ele).attr('width') - margin.right - margin.left
+		active_height = d3.select(svg_ele).attr('height') - margin.top - margin.bottom
+
+		function row_mappings(row){
+			row['value'] = +row['value']
+			row['Revenue'] +row['Revenue']
+			return row
+		}
+
+		d3.csv('data/treeMap_data.csv', row_mappings, function(data){
+
+			tree_data = convert2Tree(data, ['State'])
+			root= d3.hierarchy(tree_data)
+					.sum(function(d) {
+						return d.value
+					})
+					.sort(function(a,b) {
+						return b.value - a.value
+					})
+			
+			treeLayout = d3.treemap().size([active_width, active_height])
+			data_nodes = treeLayout(root)
+			console.log(root.leaves())
+
+			d3.select('.tree-map')
+				.append('g')
+				.attr('class', 'g-main')
+				.attr('transform', 'translate('+margin.left+','+margin.top+')')
+				.selectAll('nodes')
+				.data(root.leaves())
+				.enter()
+				.append('rect')
+				.attr('x', function(d) {return d.x0})
+				.attr('y', function(d) {return d.y0})
+				.attr('width', function(d) {return d.x1 - d.x0})
+				.attr('height', function(d) {return d.y1 - d.y0})
+				.attr('fill', 'steelblue')
+				.attr('stroke', 'white')
+
+			d3.select('.g-main')
+				.append('g')
+				.selectAll('texts')
+				.data(root.leaves())
+				.enter()
+				.append('text')
+				.attr('x', function(d) {return d.x0 + (d.x1 - d.x0)/2})
+				.attr('y', function(d) {return d.y0 + (d.y1 - d.y0)/2})
+				.attr('fill', 'red')
+				.text(function(d) {return d.data.City})
+				.attr('text-anchor', 'middle')
+				.attr('dominant-baseline', 'middle')
+
+		})
+
+	</script>
+
+</body>
+</html>
