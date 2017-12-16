@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sun Burst</title>
+	<link rel="stylesheet" type="text/css" href="libraries/bootstrap.min.css">
+	
+	<style type="text/css">
+		.sunburst{
+			border: 1px solid black;
+		}
+	</style>
+
+</head>
+<body>
+
+	<svg width=800 height=500 class="sunburst"></svg>
+
+	<script type="text/javascript" src="libraries/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="libraries/underscore-min.js"></script>
+	<script type="text/javascript" src="libraries/d3.min.js"></script>
+	<script type="text/javascript" src="libraries/popper.min.js"></script>
+	<script type="text/javascript" src="libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="udf/convert2Tree.js"></script>
+	
+
+	<script type="text/javascript">
+		
+		margin = {'top':50, 'right':50, 'bottom':50, 'left':50}
+		svg_ele = '.sunburst'
+
+		active_width = d3.select(svg_ele).attr('width') - margin.right - margin.left
+		active_height = d3.select(svg_ele).attr('height') - margin.top - margin.bottom
+
+		function row_mappings(row){
+			row['value'] = +row['value']
+			row['Revenue'] +row['Revenue']
+			return row
+		}
+
+		d3.csv('data/treeMap_data.csv', row_mappings, function(data){
+
+			uniq_states = _.unique(_.pluck(data, 'State'))
+			uniq_city = _.unique(_.pluck(data, 'City'))
+
+			tree_data = convert2Tree(data, ['State'])
+			root = d3.hierarchy(tree_data)
+					.sum(function(d) {return d.value})
+
+			sunLayout = d3.partition()
+			sunLayout(root)
+
+			var g_main = d3.select(svg_ele)
+				.append('g')
+				.attr('class', 'g-main')
+				.attr('transform', 'translate('+active_width/2+','+active_height/2+')')
+
+			tau = 2 * Math.PI
+			radius = 100
+
+			radius_scale = d3.scaleLinear()
+							.range([0, radius])
+
+			tau_scale = d3.scaleLinear()
+							.range([0, tau])
+
+			state_col_scale = d3.scaleOrdinal()
+								.range(d3.schemeCategory10)
+								.domain(uniq_states)
+
+			city_col_scale = d3.scaleOrdinal()
+								.range(d3.schemeCategory20c)
+								.domain(uniq_city)
+
+			var arcGenerator = d3.arc()
+			.startAngle(function(d) {return Math.max(0, Math.min(tau, tau_scale(d.x0)))})
+			.endAngle(function(d) {return Math.max(0, Math.min(tau, tau_scale(d.x1)))})
+			.innerRadius(function(d) {return Math.max(0, radius_scale(d.y0))})
+			.outerRadius(function (d) {return Math.max(0, radius_scale(d.y1))})
+
+				g_main.selectAll('.nodes')
+				.data(root.descendants())
+				.enter()
+				.append('path')
+				.attr('d', arcGenerator)
+				.attr('fill', function(d) {
+					if (d.depth == 1) {return state_col_scale(d.data.name)}
+					else if (d.depth == 2) {return city_col_scale(d.data.City)}
+				})
+				.attr('stroke', 'white')
+				.attr('stroke-width', 1)
+				.on('click', click)
+
+
+function click(d) {
+
+	g_main.transition()
+			.duration(750)
+			.tween("scale", function() {
+				xd = d3.interpolate(tau_scale.domain(), [d.x0, d.x1])
+				yd = d3.interpolate(radius_scale.domain(), [d.y0, d.y1])
+				yr = d3.interpolate(radius_scale.range(), [d.y0 ? 20:0 , radius])
+
+				return function(t) { tau_scale.domain(xd(t)); radius_scale.domain(yd(t)).range(yr(t)) }
+			})
+			.selectAll('path')
+			.attrTween("d", function(d) { return function() { return arcGenerator(d) } })
+}
+
+		})
+
+
+	</script>
+
+</body>
+</html>
+
